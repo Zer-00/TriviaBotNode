@@ -50,7 +50,7 @@ async function generateEasyVideoGameQuestion(existingQuestions, previousTitles) 
   try {
     console.log("Generando pregunta para el videojuego:", gameTitle);
     const response = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
+     model: "gpt-4o-mini",
       messages: [
         { role: "system", content: "Eres un asistente de trivia especializado en videojuegos." },
         { role: "user", content: prompt }
