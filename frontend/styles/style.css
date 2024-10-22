@@ -1,0 +1,98 @@
+body {
+    background-image: url('https://i.ibb.co/CVfFmLV/fondo.jpg');
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#chat-container {
+    width: 100%;
+    max-width: 500px;
+    height: 80vh;
+    background-color: rgba(255, 255, 255, 0.9);
+    border-radius: 20px;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+#chat {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    background-color: #f0e6dc;
+}
+
+.user-message {
+    align-self: flex-end;
+    background-color: #daf5d6;
+    color: #333;
+    padding: 12px 18px;
+    border-radius: 20px 20px 0 20px;
+    max-width: 70%;
+}
+
+.bot-message {
+    align-self: flex-start;
+    background-color: #ffffff;
+    color: #333;
+    padding: 12px 18px;
+    border-radius: 20px 20px 20px 0;
+    max-width: 70%;
+    font-weight: bold;
+}
+
+#user-input-container {
+    display: flex;
+    padding: 15px;
+    border-top: 1px solid #ddd;
+    background-color: #fff;
+}
+
+#user-input {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 20px;
+    font-size: 16px;
+}
+
+#send-button {
+    padding: 10px 20px;
+    margin-left: 10px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 20px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+#send-button:hover {
+    background-color: #0056b3;
+}
+
+/* Para hacer que el chat sea deslizable y tenga un scroll interno */
+#chat::-webkit-scrollbar {
+    width: 8px;
+}
+
+#chat::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 10px;
+}
+
+#chat::-webkit-scrollbar-track {
+    background: #f0e6dc;
+}
