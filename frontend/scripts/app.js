@@ -1,121 +1,180 @@
-document.addEventListener("DOMContentLoaded", function() {
-    const chat = document.getElementById("chat");
-    const userInput = document.getElementById("user-input");
+document.addEventListener("DOMContentLoaded", () => {
+    const chatInput = document.getElementById("user-input");
     const sendButton = document.getElementById("send-button");
+    const chatBox = document.getElementById("chat");
 
-    function addMessage(content, isUser = false) {
-        const messageElement = document.createElement("div");
-        messageElement.className = isUser ? "user-message" : "bot-message";
-        messageElement.textContent = content;
-        chat.appendChild(messageElement);
-        chat.scrollTop = chat.scrollHeight; // Desplazarse hacia el final del contenedor de mensajes
+    let awaitingNewPlayerName = false;
+    let previousTitles = [];
+    let currentAnswer = "";
+    let currentQuestion = "";
+    let gameEnded = false; // Variable para manejar el estado de finalización del juego
+    let awaitingRestartDecision = false; // Para manejar si el usuario ya fue preguntado si desea reiniciar
+    let questionCount = 0; // Variable para contar el número de preguntas realizadas
+    let score = 0; // Variable para acumular el puntaje
+
+    // Agregar mensajes al chat
+    function appendMessage(content, sender) {
+        const messageBubble = document.createElement("div");
+        messageBubble.className = `message-bubble ${sender === "user" ? "user-message" : "bot-message"}`;
+        messageBubble.textContent = content;
+        chatBox.appendChild(messageBubble);
+        chatBox.scrollTop = chatBox.scrollHeight;
     }
 
-    function handleResponse(response) {
-        if (response.type === 'askName') {
-            addMessage(response.content);
-        } else if (response.type === 'greetingAndQuestion') {
-            // Agregar saludo y primera pregunta
-            addMessage(response.content);
-            addMessage(response.question);
-            userInput.dataset.correctAnswer = response.answer;
-        } else if (response.type === 'question') {
-            addMessage(response.content);
-            userInput.dataset.correctAnswer = response.answer;
-        } else if (response.type === 'answer') {
-            if (response.correct) {
-                addMessage("¡Respuesta correcta! 🎉");
+    // Enviar solicitud al servidor
+    async function sendRequest(endpoint, body) {
+        try {
+            const response = await fetch(endpoint, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(body),
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                handleResponse(data);
             } else {
-                addMessage(`Respuesta incorrecta. 😞 La respuesta correcta era: ${userInput.dataset.correctAnswer}`);
+                console.error("Error en la solicitud: ", response.statusText);
+                appendMessage("Ocurrió un error al procesar tu solicitud. Por favor, intenta nuevamente.", "bot");
             }
+        } catch (error) {
+            console.error("Error de red: ", error);
+            appendMessage("Error de conexión. Por favor, verifica tu conexión a internet.", "bot");
+        }
+    }
 
-            if (response.next) {
-                fetchNewQuestion();
+    // Manejar la respuesta del servidor
+    function handleResponse(data) {
+        switch (data.type) {
+                // En 'askName' o 'greeting' en handleResponse
+            case 'askName':
+                appendMessage(data.content, "bot");
+                score = 0; // Reiniciar puntaje en el frontend
+                questionCount = 0; // Reiniciar contador de preguntas en el frontend
+                currentAnswer = "";
+                currentQuestion = "";
+                break;
+
+            case 'greeting':
+                appendMessage(data.content, "bot");
+                questionCount = 0; // Reiniciar el contador de preguntas
+                score = 0; // Reiniciar la puntuación
+                gameEnded = false; // Asegurarse de que gameEnded sea false al iniciar el nuevo ciclo
+                awaitingRestartDecision = false; // Reiniciar el estado de reinicio
+                currentAnswer = "";
+                currentQuestion = "";
+                sendRequest('/api/chat', { message: "nueva pregunta", previousTitles });
+                break;
+
+            case 'greetingAndQuestion':
+                appendMessage(data.content, "bot");
+                appendMessage(data.question, "bot");
+                currentAnswer = data.answer;
+                currentQuestion = data.question;
+                break;
+
+            case 'question':
+                appendMessage(data.content, "bot");
+                currentAnswer = data.answer;
+                currentQuestion = data.content;
+                break;
+
+            case 'answer':
+                if (data.correct) {
+                    appendMessage("¡Respuesta correcta! 🎉", "bot");
+                    score += 100; // Incrementar la puntuación cuando la respuesta es correcta
+                } else {
+                    appendMessage(`Respuesta incorrecta. 😞 La respuesta correcta era: ${currentAnswer}`, "bot");
+                }
+
+                questionCount++; // Incrementar el contador de preguntas
+
+                if (questionCount < 5) {
+                    sendRequest('/api/chat', { message: "nueva pregunta", previousTitles });
+                } else {
+                    gameEnded = true;
+                    appendMessage(`Juego terminado. Tu puntuación total es: ${score} puntos. ¿Quieres seguir jugando con el mismo usuario o cambiar de usuario? (mismo/nuevo/no)`, "bot");
+                    awaitingRestartDecision = true; // Mantener el estado de decisión
+                }
+                currentQuestion = "";
+                break;
+
+            case 'endGame':
+                appendMessage(data.content, "bot");
+                gameEnded = true;
+                currentQuestion = "";
+                currentAnswer = "";
+                awaitingRestartDecision = false;
+                break;
+
+            case 'askContinue':
+                appendMessage(data.content, "bot");
+                awaitingRestartDecision = false;
+                break;
+
+            case 'greeting':
+                appendMessage(data.content, "bot");
+                questionCount = 0; // Reiniciar el contador de preguntas
+                score = 0; // Reiniciar la puntuación
+                gameEnded = false; // Asegurarse de que gameEnded sea false al iniciar el nuevo ciclo
+                awaitingRestartDecision = false; // Reiniciar el estado de reinicio
+                sendRequest('/api/chat', { message: "nueva pregunta", previousTitles });
+                break;
+
+            default:
+                console.error("Tipo de respuesta no manejado:", data.type);
+        }
+    }
+
+    // Manejar envío al presionar el botón de enviar
+    function handleSend() {
+        const userInput = chatInput.value.trim();
+
+        if (userInput.length === 0) return;
+
+        appendMessage(userInput, "user");
+
+        if (awaitingRestartDecision) {
+            if (userInput.toLowerCase() === "mismo") {
+                sendRequest('/api/continue', { message: "mismo" });
+                awaitingRestartDecision = false;
+            } else if (userInput.toLowerCase() === "nuevo") {
+                sendRequest('/api/restart', { message: "nuevo" });
+                awaitingRestartDecision = false;
+                awaitingNewPlayerName = true; // Añade un nuevo estado para el nombre del jugador
+            } else if (userInput.toLowerCase() === "no") {
+                appendMessage("Gracias por jugar!", "bot");
+                awaitingRestartDecision = false;
+                gameEnded = true;
             } else {
-                // La trivia ha terminado, muestra la puntuación
-                fetch('/api/chat', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ message: "fin" })
-                })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.type === 'endGame') {
-                        addMessage(data.content);
-                    }
-                })
-                .catch(error => console.error('Error:', error));
+                appendMessage("Por favor responde con 'mismo', 'nuevo', o 'no'.", "bot");
             }
+        } else if (awaitingNewPlayerName) {
+            // Envía el nuevo nombre del jugador y reinicia la trivia
+            playerName = userInput;
+            sendRequest('/api/chat', { message: playerName });
+            awaitingNewPlayerName = false; // Resetea el estado
+        } else if (!currentAnswer && !currentQuestion) {
+            sendRequest('/api/chat', { message: userInput });
+        } else if (currentQuestion) {
+            sendRequest('/api/answer', { userInput, correctAnswer: currentAnswer });
+            currentQuestion = "";
         }
-    }
+        
+        chatInput.value = "";
+    }              
 
-    function fetchNewQuestion() {
-        fetch('/api/chat', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ message: 'nueva pregunta', previousTitles: [] })
-        })
-        .then(res => res.json())
-        .then(data => handleResponse(data))
-        .catch(error => console.error('Error:', error));
-    }
-
-    sendButton.addEventListener("click", function() {
-        const message = userInput.value.trim();
-        if (message === "") {
-            return; // No envía mensajes vacíos
-        }
-
-        addMessage(message, true);
-        if (!userInput.dataset.correctAnswer) {
-            // Se está enviando el nombre del jugador
-            fetch('/api/chat', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ message })
-            })
-            .then(res => res.json())
-            .then(data => handleResponse(data))
-            .catch(error => console.error('Error:', error));
-        } else {
-            // Se está enviando una respuesta a una pregunta
-            const correctAnswer = userInput.dataset.correctAnswer;
-            fetch('/api/answer', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ userInput: message, correctAnswer })
-            })
-            .then(res => res.json())
-            .then(data => handleResponse(data))
-            .catch(error => console.error('Error:', error));
-        }
-        userInput.value = ""; // Limpiar campo de entrada
+    sendButton.addEventListener("click", (event) => {
+        event.preventDefault();
+        handleSend();
     });
 
-    userInput.addEventListener("keydown", function(event) {
+    chatInput.addEventListener("keydown", (event) => {
         if (event.key === "Enter") {
             event.preventDefault();
-            sendButton.click(); // Simular clic en el botón enviar
+            handleSend();
         }
     });
 
-    // Inicializa la primera interacción pidiendo el nombre del jugador
-    fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ message: "" })
-    })
-    .then(res => res.json())
-    .then(data => handleResponse(data))
-    .catch(error => console.error('Error:', error));
+    sendRequest('/api/chat', { previousTitles });
 });

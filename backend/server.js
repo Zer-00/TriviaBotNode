@@ -50,7 +50,7 @@ async function generateEasyVideoGameQuestion(existingQuestions, previousTitles) 
   try {
     console.log("Generando pregunta para el videojuego:", gameTitle);
     const response = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
+      model: "gpt-4o-mini",
       messages: [
         { role: "system", content: "Eres un asistente de trivia especializado en videojuegos." },
         { role: "user", content: prompt }
@@ -267,15 +267,72 @@ app.post('/api/chat', async (req, res) => {
         return res.status(404).json({ error: 'No se pudo generar una nueva pregunta.' });
       }
     } else {
-      // Finalizar el juego después de 5 preguntas
+      // Finalizar el juego después de 5 preguntas y preguntar si quiere jugar de nuevo
       console.log(`Juego terminado. Puntaje final de ${playerName}: ${score}`);
-      return res.json({ type: 'endGame', content: `¡Juego terminado, ${playerName}! Tu puntuación final es: ${score} puntos.` });
+      return res.json({ type: 'endGame', content: `¡Juego terminado, ${playerName}! Tu puntuación final es: ${score} puntos. ¿Quieres jugar de nuevo? (sí/no)` });
     }
   } catch (error) {
     console.error("Error interno del servidor: ", error); // Imprimir el error completo para diagnóstico
     return res.status(500).json({
       error: 'Hubo un error procesando la solicitud. Consulte la consola del servidor para más detalles.'
     });
+  }
+});
+
+// Endpoint para manejar la decisión del usuario de jugar de nuevo, incluyendo si quiere continuar con el mismo usuario o uno nuevo
+app.post('/api/restart', (req, res) => {
+  const { message } = req.body;
+
+  if (!message || typeof message !== 'string' || message.trim().length === 0) {
+    return res.status(400).json({ error: 'Respuesta no válida.' });
+  }
+
+  const lowerMessage = message.trim().toLowerCase();
+
+  if (lowerMessage === 'no') {
+    // El usuario no quiere seguir jugando, se resetean las variables y se termina el juego
+    playerName = "";
+    score = 0;
+    questionCount = 0;
+    return res.json({ type: 'endGame', content: 'Está bien, gracias por jugar. Si deseas jugar nuevamente, solo ingresa tu nombre.' });
+  } else if (lowerMessage === 'mismo') {
+    // El usuario quiere continuar con el mismo nombre
+    score = 0;
+    questionCount = 0;
+    return res.json({ type: 'greeting', content: `¡Bienvenido de nuevo, ${playerName}! Vamos a empezar otra vez.` });
+  } else if (lowerMessage === 'nuevo') {
+    // El usuario quiere cambiar de nombre, se resetean las variables y se solicita un nuevo nombre
+    playerName = ""; // Limpiar el nombre del jugador
+    score = 0;
+    questionCount = 0;
+    return res.json({ type: 'askName', content: 'Por favor, ingresa tu nuevo nombre para comenzar.' });
+  } else {
+    // Respuesta no reconocida
+    return res.status(400).json({ error: 'Respuesta no reconocida. Por favor responde "mismo", "nuevo", o "no".' });
+  }
+});
+
+// Endpoint para manejar si el usuario quiere continuar con el mismo nombre o uno nuevo
+app.post('/api/continue', async (req, res) => {
+  const { message } = req.body;
+
+  if (!message || typeof message !== 'string' || message.trim().length === 0) {
+    return res.status(400).json({ error: 'Respuesta no válida.' });
+  }
+
+  const lowerMessage = message.trim().toLowerCase();
+
+  if (lowerMessage === 'mismo') {
+    score = 0;
+    questionCount = 0;
+    return res.json({ type: 'greeting', content: `¡Bienvenido de nuevo, ${playerName}! Vamos a empezar otra vez.` });
+  } else if (lowerMessage === 'nuevo') {
+    playerName = ""; // Limpiar el nombre del jugador
+    score = 0;
+    questionCount = 0;
+    return res.json({ type: 'askName', content: 'Por favor, ingresa tu nuevo nombre para comenzar.' });
+  } else {
+    return res.status(400).json({ error: 'Respuesta no reconocida. Por favor responde "mismo" o "nuevo".' });
   }
 });
 
