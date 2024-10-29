@@ -25,68 +25,78 @@ const VIDEO_GAME_TITLES = [
   "Assassin's Creed", "Grand Theft Auto III", "Grand Theft Auto: Vice City", "Grand Theft Auto: San Andreas", "Grand Theft Auto IV",
   "Grand Theft Auto V", "Mass Effect", "Portal", "Half-Life", "Skyrim", "Animal Crossing", "Fallout", "Resident Evil",
   "God of War", "BioShock", "Destiny", "League of Legends", "The Last of Us", "Horizon Zero Dawn", "Persona 5", "Uncharted",
-  "Metal Gear Solid", "Metal Gear Solid 2", "Metal Gear Solid 3", "Metal Gear Solid 4", "Metal Gear Solid V", "Bloodborne", 
-  "Cyberpunk 2077", "The Sims", "Diablo", "Borderlands", "Doom", "Dragon Age", "Kingdom Hearts", "Tomb Raider", 
+  "Metal Gear Solid", "Metal Gear Solid 2", "Metal Gear Solid 3", "Metal Gear Solid 4", "Metal Gear Solid V", "Bloodborne",
+  "Cyberpunk 2077", "The Sims", "Diablo", "Borderlands", "Doom", "Dragon Age", "Kingdom Hearts", "Tomb Raider",
   "Silent Hill", "Silent Hill 2", "Silent Hill 3", "Silent Hill 4: The Room", "Silent Hill: Origins", "Silent Hill: Homecoming",
   "Silent Hill: Shattered Memories", "Silent Hill: Downpour", "FIFA 17", "FIFA 18", "FIFA 19", "FIFA 20", "FIFA 21", "FIFA 22", "FIFA 23",
   "NBA 2K", "Splatoon", "Pokémon", "Monster Hunter", "Bayonetta", "NieR: Automata", "Xenoblade Chronicles", "Dead Space", "Yakuza",
   "Crash Bandicoot", "Pac-Man", "Tetris", "Castlevania", "Cuphead", "Hades", "Valorant", "Rocket League", "Rainbow Six Siege",
   "Genshin Impact", "Apex Legends", "Dota 2", "Warframe", "Starcraft", "Madden NFL", "For Honor", "Far Cry", "Just Cause",
-  "Hitman", "The Elder Scrolls Online", "Sekiro: Shadows Die Twice", "Watch Dogs", "Left 4 Dead", "Team Fortress 2", 
-  "Shadow of the Colossus", "Darkest Dungeon", "Dark Souls", "Dark Souls II", "Dark Souls III", "Forza Horizon", 
+  "Hitman", "The Elder Scrolls Online", "Sekiro: Shadows Die Twice", "Watch Dogs", "Left 4 Dead", "Team Fortress 2",
+  "Shadow of the Colossus", "Darkest Dungeon", "Dark Souls", "Dark Souls II", "Dark Souls III", "Forza Horizon",
   "Forza Horizon 2", "Forza Horizon 3", "Forza Horizon 4", "Forza Horizon 5"
 ];
 
+const SALVADORAN_CULTURE_TOPICS = [
+  "Historia de El Salvador",
+  "Platos típicos de El Salvador",
+  "Personajes históricos salvadoreños",
+  "Festividades y costumbres de El Salvador",
+  "Sitios turísticos en El Salvador",
+  "Música y danzas tradicionales de El Salvador",
+  "Artistas y literatura salvadoreña"
+];
 
-// Mantener un registro de títulos previamente seleccionados para evitar repeticiones
-function getRandomGameTitle(previousTitles, maxPrevious = 5) {
-  // Filtrar títulos que no se han usado recientemente
-  const availableTitles = VIDEO_GAME_TITLES.filter(title => !previousTitles.includes(title));
-  if (availableTitles.length === 0) {
-    previousTitles.length = 0; // Reiniciar títulos previos si todos fueron utilizados
-    availableTitles.push(...VIDEO_GAME_TITLES); // Rellenar con todos los títulos
+// Función para obtener un título aleatorio basado en la categoría
+function getRandomTitle(category, previousTitles = []) {
+  let availableTitles;
+  if (category === 'video_games') {
+    availableTitles = VIDEO_GAME_TITLES.filter(title => !previousTitles.includes(title));
+  } else if (category === 'salvadoran_culture') {
+    availableTitles = SALVADORAN_CULTURE_TOPICS.filter(title => !previousTitles.includes(title));
   }
-  // Seleccionar un título al azar
+
+  if (!availableTitles || availableTitles.length === 0) {
+    previousTitles.length = 0;
+    availableTitles = category === 'video_games' ? VIDEO_GAME_TITLES : SALVADORAN_CULTURE_TOPICS;
+  }
+
   const selectedTitle = availableTitles[Math.floor(Math.random() * availableTitles.length)];
   previousTitles.push(selectedTitle);
-  // Limitar el tamaño de la lista de títulos previos
-  if (previousTitles.length > maxPrevious) {
-    previousTitles.shift();
-  }
   return selectedTitle;
 }
 
-// Generar una pregunta fácil sobre videojuegos usando la API de OpenAI
-async function generateEasyVideoGameQuestion(existingQuestions, previousTitles) {
-  const gameTitle = getRandomGameTitle(previousTitles);
-  const prompt = `Genera una pregunta de trivia fácil sobre el videojuego '${gameTitle}'. La pregunta debe ser adecuada para jugadores casuales y centrarse en hechos generales como años de lanzamiento, personajes famosos o directores de juegos conocidos. Evita repetir preguntas o similares a las ya generadas. Incluye tanto la pregunta como la respuesta correcta. Formatea como 'Question: <texto de la pregunta> Answer: <texto de la respuesta>'.`;
+// Generar una pregunta basada en la categoría
+async function generateQuestion(category, existingQuestions, previousTitles) {
+  const topic = getRandomTitle(category, previousTitles);
+  const prompt = category === 'video_games'
+    ? `Genera una pregunta de trivia fácil sobre el videojuego '${topic}'. La pregunta debe centrarse en hechos generales como años de lanzamiento, personajes famosos o directores de juegos conocidos. Incluye tanto la pregunta como la respuesta correcta. Formatea como 'Question: <texto de la pregunta> Answer: <texto de la respuesta>'.`
+    : `Genera una pregunta de trivia fácil sobre el tema '${topic}' de la cultura salvadoreña. La pregunta debe ser adecuada para un público general y centrarse en datos históricos, personajes importantes o aspectos culturales clave. Incluye tanto la pregunta como la respuesta correcta. Formatea como 'Question: <texto de la pregunta> Answer: <texto de la respuesta>'.`;
+
   try {
-    console.log("Generando pregunta para el videojuego:", gameTitle);
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-3.5-turbo",
       messages: [
-        { role: "system", content: "Eres un asistente de trivia especializado en videojuegos." },
+        { role: "system", content: "Eres un asistente de trivia que genera preguntas sobre videojuegos y cultura salvadoreña, recuerda que: debes verificar bien la informacion que uses" },
         { role: "user", content: prompt }
       ]
     });
 
-    // Extraer la pregunta y respuesta del formato esperado
     const match = response.choices[0].message.content.match(/Question:\s*(.*?)\s*Answer:\s*(.*)/s);
     if (match) {
       const question = match[1].trim();
       const answer = match[2].trim();
-      console.log("Pregunta generada:", question);
-      console.log("Respuesta generada:", answer);
-      // Verificar que la pregunta no sea similar a las ya existentes
       const isUnique = existingQuestions.every(existing => natural.JaroWinklerDistance(question, existing.question) < 0.85);
       if (isUnique) {
+        console.log("Pregunta generada:", question);
+        console.log("Respuesta generada:", answer);
         return { question, answer, source: "API" };
       } else {
         console.warn("La pregunta generada no es única. Se intentará generar otra.");
       }
     }
   } catch (error) {
-    console.error("Error al generar una pregunta con OpenAI: ", error); // Registro detallado del error en la generación de preguntas
+    console.error("Error al generar una pregunta con OpenAI: ", error);
   }
   return null;
 }
@@ -140,7 +150,7 @@ function loadQuestionsFromFile(filePath = "trivia_questions.json") {
   return [];
 }
 
-// Guardar el jugador con la mayor puntuación
+// Guardar la puntuación más alta
 function saveHighScore(playerName, score, filePath = "high_score.json") {
   try {
     let highScoreData = { name: "", score: 0 };
@@ -163,6 +173,22 @@ function saveHighScore(playerName, score, filePath = "high_score.json") {
   } catch (e) {
     console.error("Error al guardar la puntuación más alta: ", e);
   }
+}
+
+// Cargar la puntuación más alta
+function loadHighScore(filePath = "high_score.json") {
+  if (fs.existsSync(filePath)) {
+    try {
+      const fileContent = fs.readFileSync(filePath, "utf-8");
+      if (fileContent) {
+        console.log("Cargando la puntuación más alta desde el archivo...");
+        return JSON.parse(fileContent);
+      }
+    } catch (error) {
+      console.error("Error al cargar la puntuación más alta: ", error); // Registro detallado del error al cargar la puntuación
+    }
+  }
+  return { name: "", score: 0 };
 }
 
 // Función para normalizar texto y eliminar acentos y caracteres especiales
@@ -223,17 +249,19 @@ function checkAnswer(userInput, correctAnswer) {
   return false;
 }
 
-// Almacenar el nombre del jugador
+// Almacenar el nombre del jugador y otras variables de estado
 let playerName = "";
 let score = 0;
 let questionCount = 0;
+let selectedCategory = "";
+let previousTitles = [];
 
 // Endpoint para manejar la conversación de trivia
 app.post('/api/chat', async (req, res) => {
-  const { message, previousTitles } = req.body;
+  const { message } = req.body;
 
-  console.log("Contenido de 'message' recibido:", message);
-  console.log("Contenido de 'previousTitles' recibido:", previousTitles);
+  console.log("Received /api/chat request with body:", req.body);
+  console.log("Current state - playerName:", playerName, "selectedCategory:", selectedCategory, "questionCount:", questionCount);
 
   try {
     // Preguntar nombre al inicio del juego
@@ -243,46 +271,42 @@ app.post('/api/chat', async (req, res) => {
       } else {
         playerName = message.trim();
         console.log(`Nombre del jugador establecido: ${playerName}`);
-        // Generar la primera pregunta automáticamente después de saludar
-        console.log("Generando primera pregunta...");
-        const storedQuestions = loadQuestionsFromFile();
-        const generatedQuestions = [];
-        const question = await generateEasyVideoGameQuestion(
-          storedQuestions.concat(generatedQuestions),
-          previousTitles || []
-        );
-        if (question) {
-          questionCount++;
-          return res.json({ type: 'greetingAndQuestion', content: `¡Hola, ${playerName}! Comencemos con las preguntas de trivia.`, question: question.question, answer: question.answer });
-        } else {
-          console.warn("No se pudo generar la primera pregunta.");
-          return res.status(404).json({ error: 'No se pudo generar la primera pregunta.' });
-        }
+        // Pedir categoría después de recibir el nombre
+        return res.json({ type: 'askCategory', content: `Hola ${playerName}! Por favor elige una categoría: 'videojuegos' o 'cultura salvadoreña'` });
       }
     }
 
-    // Generar preguntas automáticamente después de ingresar el nombre
+    // Si la categoría no está seleccionada, pedirla
+    if (!selectedCategory) {
+      const lowerMessage = message.trim().toLowerCase();
+      console.log("Categoría ingresada:", lowerMessage); // Log para verificar la categoría ingresada
+      if (lowerMessage === 'videojuegos' || lowerMessage === 'cultura salvadoreña') {
+        selectedCategory = lowerMessage === 'videojuegos' ? 'video_games' : 'salvadoran_culture';
+        console.log(`Categoría seleccionada: ${selectedCategory}`);
+      } else {
+        console.log("Categoría no válida ingresada.");
+        return res.json({ type: 'askCategory', content: 'Categoría no válida. Por favor elige "videojuegos" o "cultura salvadoreña".' });
+      }
+    }
+
+    // Ahora, generar preguntas
     if (questionCount < 5) {
-      console.log("Generando nueva pregunta...");
-      // Generar nueva pregunta
+      console.log("Generando nueva pregunta en la categoría:", selectedCategory);
       const storedQuestions = loadQuestionsFromFile();
-      const generatedQuestions = [];
-      const question = await generateEasyVideoGameQuestion(
-        storedQuestions.concat(generatedQuestions),
-        previousTitles || []
-      );
+      const question = await generateQuestion(selectedCategory, storedQuestions, previousTitles);
       if (question) {
-        console.log("Pregunta generada correctamente:", question);
         questionCount++;
         return res.json({ type: 'question', content: question.question, answer: question.answer });
       } else {
-        console.warn("No se pudo generar una nueva pregunta.");
-        return res.status(404).json({ error: 'No se pudo generar una nueva pregunta.' });
+        console.warn("No se pudo generar una pregunta.");
+        return res.status(404).json({ error: 'No se pudo generar una pregunta.' });
       }
     } else {
       // Finalizar el juego después de 5 preguntas y preguntar si quiere jugar de nuevo
       console.log(`Juego terminado. Puntaje final de ${playerName}: ${score}`);
-      return res.json({ type: 'endGame', content: `¡Juego terminado, ${playerName}! Tu puntuación final es: ${score} puntos. ¿Quieres jugar de nuevo? (sí/no)` });
+      // Guardar la puntuación más alta
+      saveHighScore(playerName, score);
+      return res.json({ type: 'endGame', content: `¡Juego terminado, ${playerName}! Tu puntuación final es: ${score} puntos. ¿Quieres jugar de nuevo? (mismo/nuevo/no)` });
     }
   } catch (error) {
     console.error("Error interno del servidor: ", error); // Imprimir el error completo para diagnóstico
@@ -292,9 +316,11 @@ app.post('/api/chat', async (req, res) => {
   }
 });
 
-// Endpoint para manejar la decisión del usuario de jugar de nuevo, incluyendo si quiere continuar con el mismo usuario o uno nuevo
+// Endpoint para manejar la decisión del usuario de jugar de nuevo
 app.post('/api/restart', (req, res) => {
   const { message } = req.body;
+
+  console.log("Received /api/restart request with body:", req.body);
 
   if (!message || typeof message !== 'string' || message.trim().length === 0) {
     return res.status(400).json({ error: 'Respuesta no válida.' });
@@ -304,54 +330,42 @@ app.post('/api/restart', (req, res) => {
 
   if (lowerMessage === 'no') {
     // El usuario no quiere seguir jugando, se resetean las variables y se termina el juego
+    console.log("El usuario ha decidido no continuar jugando.");
     playerName = "";
+    selectedCategory = "";
     score = 0;
     questionCount = 0;
+    previousTitles = [];
     return res.json({ type: 'endGame', content: 'Está bien, gracias por jugar. Si deseas jugar nuevamente, solo ingresa tu nombre.' });
   } else if (lowerMessage === 'mismo') {
     // El usuario quiere continuar con el mismo nombre
+    console.log("El usuario ha decidido continuar con el mismo nombre.");
     score = 0;
     questionCount = 0;
-    return res.json({ type: 'greeting', content: `¡Bienvenido de nuevo, ${playerName}! Vamos a empezar otra vez.` });
+    selectedCategory = "";
+    previousTitles = [];
+    return res.json({ type: 'greeting', content: `¡Bienvenido de nuevo, ${playerName}! Por favor elige una categoría: 'videojuegos' o 'cultura salvadoreña'` });
   } else if (lowerMessage === 'nuevo') {
-    // El usuario quiere cambiar de nombre, se resetean las variables y se solicita un nuevo nombre
-    playerName = ""; // Limpiar el nombre del jugador
+    // El usuario quiere cambiar de nombre
+    console.log("El usuario ha decidido jugar con un nuevo nombre.");
+    playerName = "";
+    selectedCategory = "";
     score = 0;
     questionCount = 0;
+    previousTitles = [];
     return res.json({ type: 'askName', content: 'Por favor, ingresa tu nuevo nombre para comenzar.' });
   } else {
     // Respuesta no reconocida
+    console.log("Respuesta no reconocida en /api/restart:", lowerMessage);
     return res.status(400).json({ error: 'Respuesta no reconocida. Por favor responde "mismo", "nuevo", o "no".' });
-  }
-});
-
-// Endpoint para manejar si el usuario quiere continuar con el mismo nombre o uno nuevo
-app.post('/api/continue', async (req, res) => {
-  const { message } = req.body;
-
-  if (!message || typeof message !== 'string' || message.trim().length === 0) {
-    return res.status(400).json({ error: 'Respuesta no válida.' });
-  }
-
-  const lowerMessage = message.trim().toLowerCase();
-
-  if (lowerMessage === 'mismo') {
-    score = 0;
-    questionCount = 0;
-    return res.json({ type: 'greeting', content: `¡Bienvenido de nuevo, ${playerName}! Vamos a empezar otra vez.` });
-  } else if (lowerMessage === 'nuevo') {
-    playerName = ""; // Limpiar el nombre del jugador
-    score = 0;
-    questionCount = 0;
-    return res.json({ type: 'askName', content: 'Por favor, ingresa tu nuevo nombre para comenzar.' });
-  } else {
-    return res.status(400).json({ error: 'Respuesta no reconocida. Por favor responde "mismo" o "nuevo".' });
   }
 });
 
 // Endpoint para verificar la respuesta del usuario y avanzar a la siguiente pregunta
 app.post('/api/answer', (req, res) => {
   const { userInput, correctAnswer } = req.body;
+
+  console.log("Received /api/answer request with body:", req.body);
 
   if (!userInput || userInput.trim().length === 0) {
     console.log("Respuesta vacía no es válida.");
@@ -364,7 +378,9 @@ app.post('/api/answer', (req, res) => {
     score += 100;
   }
   console.log("Resultado de la verificación:", isCorrect ? "Correcto" : "Incorrecto");
-  return res.json({ type: 'answer', correct: isCorrect, next: questionCount < 5 });
+  
+  // Incluir la respuesta correcta en la respuesta al cliente
+  return res.json({ type: 'answer', correct: isCorrect, next: questionCount < 5, correctAnswer: correctAnswer });
 });
 
 // Endpoint para obtener la puntuación más alta
@@ -378,22 +394,6 @@ app.get('/api/highscore', (req, res) => {
     res.status(500).json({ error: 'Hubo un error al obtener la puntuación más alta.' });
   }
 });
-
-// Guardar la puntuación más alta
-function loadHighScore(filePath = "high_score.json") {
-  if (fs.existsSync(filePath)) {
-    try {
-      const fileContent = fs.readFileSync(filePath, "utf-8");
-      if (fileContent) {
-        console.log("Cargando la puntuación más alta desde el archivo...");
-        return JSON.parse(fileContent);
-      }
-    } catch (error) {
-      console.error("Error al cargar la puntuación más alta: ", error); // Registro detallado del error al cargar la puntuación
-    }
-  }
-  return { name: "", score: 0 };
-}
 
 // Servir la aplicación web en la carpeta 'public'
 app.get('/', (req, res) => {
