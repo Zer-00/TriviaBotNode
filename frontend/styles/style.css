@@ -99,3 +99,15 @@ body {
 #chat::-webkit-scrollbar-track {
     background: #f0e6dc;
 }
+
+#confetti-bottom-bar {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    height: 50px;
+    background-color: rgba(255, 255, 255, 0.9); /* Fondo translúcido */
+    box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.2);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}

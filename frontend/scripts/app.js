@@ -23,6 +23,57 @@ document.addEventListener("DOMContentLoaded", () => {
         chatBox.scrollTop = chatBox.scrollHeight;
     }
 
+    function lanzarConfeti() {
+        const chatContainer = document.getElementById("chat-container");
+        const rect = chatContainer.getBoundingClientRect();
+    
+        const end = Date.now() + 1 * 1000; // Duración de 1 segundo
+        const colors = ['#FFD700', '#00FFFF', '#FF69B4', '#FF4500']; // Dorado, cian, rosa fuerte y naranja
+    
+        (function frame() {
+            // Confeti desde el lado izquierdo en curva
+            confetti({
+                particleCount: 3,
+                angle: 120,
+                spread: 90,
+                startVelocity: 45,
+                origin: { x: rect.left / window.innerWidth, y: (rect.top + rect.height / 2) / window.innerHeight },
+                colors: colors,
+                gravity: 1.5,
+                scalar: 0.8
+            });
+    
+            // Confeti desde el lado derecho en curva
+            confetti({
+                particleCount: 3,
+                angle: 60,
+                spread: 90,
+                startVelocity: 45,
+                origin: { x: rect.right / window.innerWidth, y: (rect.top + rect.height / 2) / window.innerHeight },
+                colors: colors,
+                gravity: 1.5,
+                scalar: 0.8
+            });
+    
+            // Confeti cayendo lentamente desde arriba
+            confetti({
+                particleCount: 1, // Menor cantidad
+                angle: 90, // Directamente hacia abajo
+                spread: 45,
+                startVelocity: 20, // 15% más despacio que los laterales
+                origin: { x: (rect.left + rect.width / 2) / window.innerWidth, y: rect.top / window.innerHeight },
+                colors: colors,
+                gravity: 1, // Caída más suave
+                scalar: 0.6 // Confeti más pequeño
+            });
+    
+            if (Date.now() < end) {
+                requestAnimationFrame(frame);
+            }
+        })();
+    }
+    
+
     // Enviar solicitud al servidor
     async function sendRequest(endpoint, body) {
         console.log("Enviando solicitud a", endpoint, "con cuerpo:", body);
@@ -95,6 +146,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (data.correct) {
                     appendMessage("¡Respuesta correcta! 🎉", "bot");
                     score += 100;
+                    lanzarConfeti(); // Lanza el confeti al acertar
                 } else {
                     const correctAns = data.correctAnswer || currentAnswer;
                     appendMessage(`Respuesta incorrecta. 😞 La respuesta correcta era: ${correctAns}`, "bot");
