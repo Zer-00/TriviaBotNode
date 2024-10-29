@@ -3,15 +3,16 @@ document.addEventListener("DOMContentLoaded", () => {
     const sendButton = document.getElementById("send-button");
     const chatBox = document.getElementById("chat");
 
+    let sessionId = null;
     let awaitingCategorySelection = false;
     let awaitingNewPlayerName = false;
     let previousTitles = [];
     let currentAnswer = "";
     let currentQuestion = "";
-    let gameEnded = false; // Variable para manejar el estado de finalización del juego
-    let awaitingRestartDecision = false; // Para manejar si el usuario ya fue preguntado si desea reiniciar
-    let questionCount = 0; // Variable para contar el número de preguntas realizadas
-    let score = 0; // Variable para acumular el puntaje
+    let gameEnded = false;
+    let awaitingRestartDecision = false;
+    let questionCount = 0;
+    let score = 0;
 
     // Agregar mensajes al chat
     function appendMessage(content, sender) {
@@ -25,6 +26,12 @@ document.addEventListener("DOMContentLoaded", () => {
     // Enviar solicitud al servidor
     async function sendRequest(endpoint, body) {
         console.log("Enviando solicitud a", endpoint, "con cuerpo:", body);
+
+        // Incluir sessionId en el cuerpo si está disponible
+        if (sessionId) {
+            body.sessionId = sessionId;
+        }
+
         try {
             const response = await fetch(endpoint, {
                 method: "POST",
@@ -49,9 +56,18 @@ document.addEventListener("DOMContentLoaded", () => {
     // Manejar la respuesta del servidor
     function handleResponse(data) {
         console.log("Manejando respuesta del servidor:", data);
+
+        // Almacenar sessionId si está presente
+        if (data.sessionId) {
+            sessionId = data.sessionId;
+        }
+
         switch (data.type) {
             case 'askName':
-                appendMessage(data.content, "bot");
+                // No mostrar el mensaje nuevamente si ya lo mostramos
+                if (!awaitingNewPlayerName) {
+                    appendMessage(data.content, "bot");
+                }
                 score = 0;
                 questionCount = 0;
                 currentAnswer = "";
@@ -80,12 +96,10 @@ document.addEventListener("DOMContentLoaded", () => {
                     appendMessage("¡Respuesta correcta! 🎉", "bot");
                     score += 100;
                 } else {
-                    // Usar currentAnswer o data.correctAnswer si está disponible
                     const correctAns = data.correctAnswer || currentAnswer;
                     appendMessage(`Respuesta incorrecta. 😞 La respuesta correcta era: ${correctAns}`, "bot");
                 }
 
-                // Limpiar currentAnswer después de manejar la respuesta
                 currentAnswer = "";
 
                 if (data.next) {
@@ -130,7 +144,6 @@ document.addEventListener("DOMContentLoaded", () => {
         } else if (currentQuestion) {
             sendRequest('/api/answer', { userInput, correctAnswer: currentAnswer });
             currentQuestion = "";
-            // No limpiar currentAnswer aquí
         }
 
         chatInput.value = "";
@@ -151,4 +164,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Iniciar el juego solicitando el nombre del usuario
     appendMessage("Por favor, ingresa tu nombre para comenzar.", "bot");
     awaitingNewPlayerName = true;
+
+    // Enviar solicitud inicial para obtener sessionId
+    sendRequest('/api/chat', { message: '' });
 });

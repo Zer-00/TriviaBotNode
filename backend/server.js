@@ -6,6 +6,9 @@ const path = require('path');
 const natural = require('natural'); // Importar natural para comparación de texto
 const { v4: uuidv4 } = require('uuid'); // Generar identificadores únicos
 
+// Declarar la variable global para almacenar las sesiones activas
+const sessions = {}; // Almacenar las sesiones activas con sessionId como clave
+
 // Configuración del cliente de OpenAI
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY, // Clave de la API desde variables de entorno
@@ -258,130 +261,164 @@ let previousTitles = [];
 
 // Endpoint para manejar la conversación de trivia
 app.post('/api/chat', async (req, res) => {
-  const { message } = req.body;
+  const { sessionId, message } = req.body;
 
-  console.log("Received /api/chat request with body:", req.body);
-  console.log("Current state - playerName:", playerName, "selectedCategory:", selectedCategory, "questionCount:", questionCount);
+  // Si no hay sessionId o la sesión no existe, crea una nueva
+  if (!sessionId || !sessions[sessionId]) {
+    console.log("Sessions object: ", sessions);
+      const newSessionId = uuidv4();
+      sessions[newSessionId] = { playerName: "", score: 0, questionCount: 0, selectedCategory: "", previousTitles: [] };
+      return res.json({ type: 'askName', content: 'Por favor, ingresa tu nombre para comenzar.', sessionId: newSessionId });
+  }
+
+  // Al inicio de cada endpoint
+  sessions[sessionId].lastActive = Date.now();
+
+  const session = sessions[sessionId]; // Acceder a la sesión específica del usuario
 
   try {
-    // Preguntar nombre al inicio del juego
-    if (!playerName) {
-      if (!message || typeof message !== 'string' || message.trim().length === 0) {
-        return res.json({ type: 'askName', content: 'Por favor, ingresa tu nombre para comenzar.' });
-      } else {
-        playerName = message.trim();
-        console.log(`Nombre del jugador establecido: ${playerName}`);
-        // Pedir categoría después de recibir el nombre
-        return res.json({ type: 'askCategory', content: `Hola ${playerName}! Por favor elige una categoría: 'videojuegos' o 'cultura salvadoreña'` });
+      // Preguntar nombre al inicio del juego si no está establecido
+      if (!session.playerName) {
+          if (!message || typeof message !== 'string' || message.trim().length === 0) {
+              return res.json({ type: 'askName', content: 'Por favor, ingresa tu nombre para comenzar.', sessionId });
+          } else {
+              session.playerName = message.trim();
+              console.log(`Nombre del jugador establecido: ${session.playerName}`);
+              // Pedir categoría después de recibir el nombre
+              return res.json({ type: 'askCategory', content: `Hola ${session.playerName}! Por favor elige una categoría: 'videojuegos' o 'cultura salvadoreña'`, sessionId });
+          }
       }
-    }
 
-    // Si la categoría no está seleccionada, pedirla
-    if (!selectedCategory) {
-      const lowerMessage = message.trim().toLowerCase();
-      console.log("Categoría ingresada:", lowerMessage); // Log para verificar la categoría ingresada
-      if (lowerMessage === 'videojuegos' || lowerMessage === 'cultura salvadoreña') {
-        selectedCategory = lowerMessage === 'videojuegos' ? 'video_games' : 'salvadoran_culture';
-        console.log(`Categoría seleccionada: ${selectedCategory}`);
-      } else {
-        console.log("Categoría no válida ingresada.");
-        return res.json({ type: 'askCategory', content: 'Categoría no válida. Por favor elige "videojuegos" o "cultura salvadoreña".' });
+      // Si la categoría no está seleccionada, pedirla
+      if (!session.selectedCategory) {
+          const lowerMessage = message.trim().toLowerCase();
+          console.log("Categoría ingresada:", lowerMessage); // Log para verificar la categoría ingresada
+          if (lowerMessage === 'videojuegos' || lowerMessage === 'cultura salvadoreña') {
+              session.selectedCategory = lowerMessage === 'videojuegos' ? 'video_games' : 'salvadoran_culture';
+              console.log(`Categoría seleccionada: ${session.selectedCategory}`);
+          } else {
+              console.log("Categoría no válida ingresada.");
+              return res.json({ type: 'askCategory', content: 'Categoría no válida. Por favor elige "videojuegos" o "cultura salvadoreña".', sessionId });
+          }
       }
-    }
 
-    // Ahora, generar preguntas
-    if (questionCount < 5) {
-      console.log("Generando nueva pregunta en la categoría:", selectedCategory);
-      const storedQuestions = loadQuestionsFromFile();
-      const question = await generateQuestion(selectedCategory, storedQuestions, previousTitles);
-      if (question) {
-        questionCount++;
-        return res.json({ type: 'question', content: question.question, answer: question.answer });
+      // Ahora, generar preguntas
+      if (session.questionCount < 5) {
+          console.log("Generando nueva pregunta en la categoría:", session.selectedCategory);
+          const storedQuestions = loadQuestionsFromFile();
+          const question = await generateQuestion(session.selectedCategory, storedQuestions, session.previousTitles);
+          if (question) {
+              session.questionCount++;
+              return res.json({ type: 'question', content: question.question, answer: question.answer, sessionId });
+          } else {
+              console.warn("No se pudo generar una pregunta.");
+              return res.status(404).json({ error: 'No se pudo generar una pregunta.', sessionId });
+          }
       } else {
-        console.warn("No se pudo generar una pregunta.");
-        return res.status(404).json({ error: 'No se pudo generar una pregunta.' });
+          // Finalizar el juego después de 5 preguntas y preguntar si quiere jugar de nuevo
+          console.log(`Juego terminado. Puntaje final de ${session.playerName}: ${session.score}`);
+          // Guardar la puntuación más alta
+          saveHighScore(session.playerName, session.score);
+          return res.json({ type: 'endGame', content: `¡Juego terminado, ${session.playerName}! Tu puntuación final es: ${session.score} puntos. ¿Quieres jugar de nuevo? (mismo/nuevo/no)`, sessionId });
       }
-    } else {
-      // Finalizar el juego después de 5 preguntas y preguntar si quiere jugar de nuevo
-      console.log(`Juego terminado. Puntaje final de ${playerName}: ${score}`);
-      // Guardar la puntuación más alta
-      saveHighScore(playerName, score);
-      return res.json({ type: 'endGame', content: `¡Juego terminado, ${playerName}! Tu puntuación final es: ${score} puntos. ¿Quieres jugar de nuevo? (mismo/nuevo/no)` });
-    }
   } catch (error) {
-    console.error("Error interno del servidor: ", error); // Imprimir el error completo para diagnóstico
-    return res.status(500).json({
-      error: 'Hubo un error procesando la solicitud. Consulte la consola del servidor para más detalles.'
-    });
+      console.error("Error interno del servidor: ", error); // Imprimir el error completo para diagnóstico
+      return res.status(500).json({
+          error: 'Hubo un error procesando la solicitud. Consulte la consola del servidor para más detalles.'
+      });
   }
 });
 
 // Endpoint para manejar la decisión del usuario de jugar de nuevo
 app.post('/api/restart', (req, res) => {
-  const { message } = req.body;
+  const { sessionId, message } = req.body;
 
   console.log("Received /api/restart request with body:", req.body);
 
+  // Verificar si sessionId está presente y existe en las sesiones activas
+  if (!sessionId || !sessions[sessionId]) {
+      return res.status(400).json({ error: 'Sesión no válida o no encontrada.' });
+  }
+
+  // Al inicio de cada endpoint
+  sessions[sessionId].lastActive = Date.now();
+
+  const session = sessions[sessionId]; // Acceder a la sesión específica del usuario
+
   if (!message || typeof message !== 'string' || message.trim().length === 0) {
-    return res.status(400).json({ error: 'Respuesta no válida.' });
+      return res.status(400).json({ error: 'Respuesta no válida.', sessionId });
   }
 
   const lowerMessage = message.trim().toLowerCase();
 
   if (lowerMessage === 'no') {
-    // El usuario no quiere seguir jugando, se resetean las variables y se termina el juego
-    console.log("El usuario ha decidido no continuar jugando.");
-    playerName = "";
-    selectedCategory = "";
-    score = 0;
-    questionCount = 0;
-    previousTitles = [];
-    return res.json({ type: 'endGame', content: 'Está bien, gracias por jugar. Si deseas jugar nuevamente, solo ingresa tu nombre.' });
+      // El usuario no quiere seguir jugando, se elimina la sesión y se termina el juego
+      console.log("El usuario ha decidido no continuar jugando.");
+      delete sessions[sessionId];
+      return res.json({ type: 'endGame', content: 'Está bien, gracias por jugar. Si deseas jugar nuevamente, solo ingresa tu nombre.' });
   } else if (lowerMessage === 'mismo') {
-    // El usuario quiere continuar con el mismo nombre
-    console.log("El usuario ha decidido continuar con el mismo nombre.");
-    score = 0;
-    questionCount = 0;
-    selectedCategory = "";
-    previousTitles = [];
-    return res.json({ type: 'greeting', content: `¡Bienvenido de nuevo, ${playerName}! Por favor elige una categoría: 'videojuegos' o 'cultura salvadoreña'` });
+      // El usuario quiere continuar con el mismo nombre, se reinicia la sesión
+      console.log("El usuario ha decidido continuar con el mismo nombre.");
+      session.score = 0;
+      session.questionCount = 0;
+      session.selectedCategory = "";
+      session.previousTitles = [];
+      return res.json({ type: 'greeting', content: `¡Bienvenido de nuevo, ${session.playerName}! Por favor elige una categoría: 'videojuegos' o 'cultura salvadoreña'`, sessionId });
   } else if (lowerMessage === 'nuevo') {
-    // El usuario quiere cambiar de nombre
-    console.log("El usuario ha decidido jugar con un nuevo nombre.");
-    playerName = "";
-    selectedCategory = "";
-    score = 0;
-    questionCount = 0;
-    previousTitles = [];
-    return res.json({ type: 'askName', content: 'Por favor, ingresa tu nuevo nombre para comenzar.' });
+      // El usuario quiere cambiar de nombre, se reinicia la sesión y se solicita un nuevo nombre
+      console.log("El usuario ha decidido jugar con un nuevo nombre.");
+      session.playerName = "";
+      session.score = 0;
+      session.questionCount = 0;
+      session.selectedCategory = "";
+      session.previousTitles = [];
+      return res.json({ type: 'askName', content: 'Por favor, ingresa tu nuevo nombre para comenzar.', sessionId });
   } else {
-    // Respuesta no reconocida
-    console.log("Respuesta no reconocida en /api/restart:", lowerMessage);
-    return res.status(400).json({ error: 'Respuesta no reconocida. Por favor responde "mismo", "nuevo", o "no".' });
+      // Respuesta no reconocida
+      console.log("Respuesta no reconocida en /api/restart:", lowerMessage);
+      return res.status(400).json({ error: 'Respuesta no reconocida. Por favor responde "mismo", "nuevo", o "no".', sessionId });
   }
 });
 
+
 // Endpoint para verificar la respuesta del usuario y avanzar a la siguiente pregunta
 app.post('/api/answer', (req, res) => {
-  const { userInput, correctAnswer } = req.body;
+  const { sessionId, userInput, correctAnswer } = req.body;
 
   console.log("Received /api/answer request with body:", req.body);
 
+  // Verificar si sessionId está presente y existe en las sesiones activas
+  if (!sessionId || !sessions[sessionId]) {
+      return res.status(400).json({ error: 'Sesión no válida o no encontrada.' });
+  }
+
+  // Al inicio de cada endpoint
+  sessions[sessionId].lastActive = Date.now();
+
+  const session = sessions[sessionId]; // Acceder a la sesión específica del usuario
+
   if (!userInput || userInput.trim().length === 0) {
-    console.log("Respuesta vacía no es válida.");
-    return res.status(400).json({ error: 'La respuesta no puede estar vacía.' });
+      console.log("Respuesta vacía no es válida.");
+      return res.status(400).json({ error: 'La respuesta no puede estar vacía.', sessionId });
   }
 
   console.log("Verificando respuesta del usuario...");
   const isCorrect = checkAnswer(userInput, correctAnswer);
   if (isCorrect) {
-    score += 100;
+      session.score += 100; // Incrementa el puntaje de la sesión actual
   }
   console.log("Resultado de la verificación:", isCorrect ? "Correcto" : "Incorrecto");
-  
+
   // Incluir la respuesta correcta en la respuesta al cliente
-  return res.json({ type: 'answer', correct: isCorrect, next: questionCount < 5, correctAnswer: correctAnswer });
+  return res.json({
+      type: 'answer',
+      correct: isCorrect,
+      next: session.questionCount < 5,
+      correctAnswer: correctAnswer,
+      sessionId
+  });
 });
+
 
 // Endpoint para obtener la puntuación más alta
 app.get('/api/highscore', (req, res) => {
@@ -394,6 +431,17 @@ app.get('/api/highscore', (req, res) => {
     res.status(500).json({ error: 'Hubo un error al obtener la puntuación más alta.' });
   }
 });
+
+// Proceso de limpieza automática de sesiones inactivas
+setInterval(() => {
+  console.log(`Sesión ${sessionId} eliminada por inactividad.`);
+  const now = Date.now();
+  for (const sessionId in sessions) {
+      if (now - sessions[sessionId].lastActive > 3600000) { // 1 hora de inactividad
+          delete sessions[sessionId];
+      }
+  }
+}, 3600000); // Ejecuta cada hora
 
 // Servir la aplicación web en la carpeta 'public'
 app.get('/', (req, res) => {
