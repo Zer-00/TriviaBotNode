@@ -22,8 +22,21 @@ app.use(express.static(path.join(__dirname, '../frontend'))); // Servir archivos
 const VIDEO_GAME_TITLES = [
   "The Legend of Zelda", "Super Mario Bros", "Sonic the Hedgehog", "Minecraft", "The Witcher 3", "Red Dead Redemption 2",
   "Overwatch", "Fortnite", "Call of Duty", "Halo", "Street Fighter", "Mortal Kombat", "Final Fantasy", "Dark Souls", "Elden Ring",
-  "Assassin's Creed", "Grand Theft Auto", "Mass Effect", "Portal", "Half-Life", "Skyrim", "Animal Crossing", "Fallout", "Resident Evil"
+  "Assassin's Creed", "Grand Theft Auto III", "Grand Theft Auto: Vice City", "Grand Theft Auto: San Andreas", "Grand Theft Auto IV",
+  "Grand Theft Auto V", "Mass Effect", "Portal", "Half-Life", "Skyrim", "Animal Crossing", "Fallout", "Resident Evil",
+  "God of War", "BioShock", "Destiny", "League of Legends", "The Last of Us", "Horizon Zero Dawn", "Persona 5", "Uncharted",
+  "Metal Gear Solid", "Metal Gear Solid 2", "Metal Gear Solid 3", "Metal Gear Solid 4", "Metal Gear Solid V", "Bloodborne", 
+  "Cyberpunk 2077", "The Sims", "Diablo", "Borderlands", "Doom", "Dragon Age", "Kingdom Hearts", "Tomb Raider", 
+  "Silent Hill", "Silent Hill 2", "Silent Hill 3", "Silent Hill 4: The Room", "Silent Hill: Origins", "Silent Hill: Homecoming",
+  "Silent Hill: Shattered Memories", "Silent Hill: Downpour", "FIFA 17", "FIFA 18", "FIFA 19", "FIFA 20", "FIFA 21", "FIFA 22", "FIFA 23",
+  "NBA 2K", "Splatoon", "Pokémon", "Monster Hunter", "Bayonetta", "NieR: Automata", "Xenoblade Chronicles", "Dead Space", "Yakuza",
+  "Crash Bandicoot", "Pac-Man", "Tetris", "Castlevania", "Cuphead", "Hades", "Valorant", "Rocket League", "Rainbow Six Siege",
+  "Genshin Impact", "Apex Legends", "Dota 2", "Warframe", "Starcraft", "Madden NFL", "For Honor", "Far Cry", "Just Cause",
+  "Hitman", "The Elder Scrolls Online", "Sekiro: Shadows Die Twice", "Watch Dogs", "Left 4 Dead", "Team Fortress 2", 
+  "Shadow of the Colossus", "Darkest Dungeon", "Dark Souls", "Dark Souls II", "Dark Souls III", "Forza Horizon", 
+  "Forza Horizon 2", "Forza Horizon 3", "Forza Horizon 4", "Forza Horizon 5"
 ];
+
 
 // Mantener un registro de títulos previamente seleccionados para evitar repeticiones
 function getRandomGameTitle(previousTitles, maxPrevious = 5) {
