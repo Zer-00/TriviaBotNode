@@ -23,22 +23,25 @@ app.use(express.static(path.join(__dirname, '../frontend'))); // Servir archivos
 
 // Lista de títulos de videojuegos para mejorar la variedad de preguntas
 const VIDEO_GAME_TITLES = [
-  "The Legend of Zelda", "Super Mario Bros", "Sonic the Hedgehog", "Minecraft", "The Witcher 3", "Red Dead Redemption 2",
-  "Overwatch", "Fortnite", "Call of Duty", "Halo", "Street Fighter", "Mortal Kombat", "Final Fantasy", "Dark Souls", "Elden Ring",
-  "Assassin's Creed", "Grand Theft Auto III", "Grand Theft Auto: Vice City", "Grand Theft Auto: San Andreas", "Grand Theft Auto IV",
-  "Grand Theft Auto V", "Mass Effect", "Portal", "Half-Life", "Skyrim", "Animal Crossing", "Fallout", "Resident Evil",
-  "God of War", "BioShock", "Destiny", "League of Legends", "The Last of Us", "Horizon Zero Dawn", "Persona 5", "Uncharted",
-  "Metal Gear Solid", "Metal Gear Solid 2", "Metal Gear Solid 3", "Metal Gear Solid 4", "Metal Gear Solid V", "Bloodborne",
-  "Cyberpunk 2077", "The Sims", "Diablo", "Borderlands", "Doom", "Dragon Age", "Kingdom Hearts", "Tomb Raider",
-  "Silent Hill", "Silent Hill 2", "Silent Hill 3", "Silent Hill 4: The Room", "Silent Hill: Origins", "Silent Hill: Homecoming",
-  "Silent Hill: Shattered Memories", "Silent Hill: Downpour", "FIFA 17", "FIFA 18", "FIFA 19", "FIFA 20", "FIFA 21", "FIFA 22", "FIFA 23",
-  "NBA 2K", "Splatoon", "Pokémon", "Monster Hunter", "Bayonetta", "NieR: Automata", "Xenoblade Chronicles", "Dead Space", "Yakuza",
-  "Crash Bandicoot", "Pac-Man", "Tetris", "Castlevania", "Cuphead", "Hades", "Valorant", "Rocket League", "Rainbow Six Siege",
-  "Genshin Impact", "Apex Legends", "Dota 2", "Warframe", "Starcraft", "Madden NFL", "For Honor", "Far Cry", "Just Cause",
-  "Hitman", "The Elder Scrolls Online", "Sekiro: Shadows Die Twice", "Watch Dogs", "Left 4 Dead", "Team Fortress 2",
-  "Shadow of the Colossus", "Darkest Dungeon", "Dark Souls", "Dark Souls II", "Dark Souls III", "Forza Horizon",
-  "Forza Horizon 2", "Forza Horizon 3", "Forza Horizon 4", "Forza Horizon 5"
+  "The Legend of Zelda", "Super Mario Bros", "Sonic the Hedgehog", "Minecraft", "The Witcher 3", "Red Dead Redemption",
+  "Red Dead Redemption 2", "Overwatch", "Fortnite", "Call of Duty", "Halo", "Street Fighter", "Mortal Kombat",
+  "Mortal Kombat: Deadly Alliance", "Mortal Kombat: Deception", "Mortal Kombat: Shaolin Monks", "Mortal Kombat: Armageddon",
+  "Mortal Kombat vs DC Universe", "Mortal Kombat (2011)", "Mortal Kombat X", "Mortal Kombat 11", "Mortal Kombat 1 (2023)",
+  "Final Fantasy", "Dark Souls", "Elden Ring", "Assassin's Creed", "Grand Theft Auto III", "Grand Theft Auto: Vice City",
+  "Grand Theft Auto: San Andreas", "Grand Theft Auto IV", "Grand Theft Auto V", "Mass Effect", "Portal", "Half-Life", "Skyrim",
+  "Animal Crossing", "Fallout", "Resident Evil", "God of War", "God of War II", "God of War III", "God of War: Ascension",
+  "God of War (2018)", "God of War Ragnarok", "BioShock", "Destiny", "League of Legends", "The Last of Us Part I",
+  "The Last of Us Part II", "Horizon Zero Dawn", "Persona 5", "Uncharted", "Metal Gear Solid", "Metal Gear Solid 2",
+  "Metal Gear Solid 3", "Metal Gear Solid 4", "Metal Gear Solid V", "Metal Gear Rising", "Bloodborne", "Cyberpunk 2077",
+  "The Sims", "Diablo", "Borderlands", "Doom", "Dragon Age", "Kingdom Hearts", "Tomb Raider", "Silent Hill", "Silent Hill 2",
+  "Silent Hill 3", "FIFA 17", "FIFA 18", "FIFA 19", "FIFA 20", "FIFA 21", "FIFA 22", "FIFA 23", "NBA 2K", "Pokémon",
+  "Monster Hunter", "NieR: Automata", "Xenoblade Chronicles", "Dead Space", "Crash Bandicoot", "Pac-Man", "Tetris",
+  "Castlevania", "Cuphead", "Hades", "Valorant", "Rocket League", "Rainbow Six Siege", "Genshin Impact", "Apex Legends",
+  "Warframe", "Starcraft", "Far Cry", "Hitman", "Sekiro: Shadows Die Twice", "Watch Dogs", "Left 4 Dead", "Team Fortress 2",
+  "Shadow of the Colossus", "Dark Souls II", "Dark Souls III", "Forza Horizon", "Forza Horizon 4", "Forza Horizon 5",
+  "Ghost of Tsushima"
 ];
+
 
 const SALVADORAN_CULTURE_TOPICS = [
   "Historia de El Salvador",
@@ -73,8 +76,8 @@ function getRandomTitle(category, previousTitles = []) {
 async function generateQuestion(category, existingQuestions, previousTitles) {
   const topic = getRandomTitle(category, previousTitles);
   const prompt = category === 'video_games'
-    ? `Genera una pregunta de trivia fácil sobre el videojuego '${topic}'. La pregunta debe centrarse en hechos generales como años de lanzamiento, personajes famosos o directores de juegos conocidos. Incluye tanto la pregunta como la respuesta correcta. Formatea como 'Question: <texto de la pregunta> Answer: <texto de la respuesta>'.`
-    : `Genera una pregunta de trivia fácil sobre el tema '${topic}' de la cultura salvadoreña. La pregunta debe ser adecuada para un público general y centrarse en datos históricos, personajes importantes o aspectos culturales clave. Incluye tanto la pregunta como la respuesta correcta. Formatea como 'Question: <texto de la pregunta> Answer: <texto de la respuesta>'.`;
+    ? `Genera una pregunta de trivia fácil sobre el videojuego '${topic}'. La pregunta debe centrarse en hechos generales como años de lanzamiento, personajes famosos,objetos,personajes principales, personajes secundarios, preguntas de el mapa del juego, directores de juegos conocidos y en general datos curiosos e interesantes. Incluye tanto la pregunta como la respuesta correcta. Formatea como 'Question: <texto de la pregunta> Answer: <texto de la respuesta>'.`
+    : `Genera una pregunta de trivia fácil sobre el tema '${topic}' de la cultura salvadoreña. La pregunta debe ser adecuada para un público general y centrarse en datos históricos, personajes importantes o aspectos culturales clave como comidas, tradiciones, lugares y cosas en general. Incluye tanto la pregunta como la respuesta correcta. Formatea como 'Question: <texto de la pregunta> Answer: <texto de la respuesta>'.`;
 
   try {
     const response = await openai.chat.completions.create({
@@ -210,6 +213,7 @@ function checkAnswer(userInput, correctAnswer) {
   const possibleAnswers = answerCleaned.split('/').map(ans => ans.trim());
 
   const synonyms = {
+    // Sinónimos de videojuegos
     "rdr2": "red dead redemption 2",
     "cod": "call of duty",
     "zelda": "the legend of zelda",
@@ -217,7 +221,70 @@ function checkAnswer(userInput, correctAnswer) {
     "ff": "final fantasy",
     "re": "resident evil",
     "mk": "mortal kombat",
-  };
+    "botw": "breath of the wild",
+    "ac": "assassin's creed",
+    "ds": "dark souls",
+    "wow": "world of warcraft",
+    "lol": "league of legends",
+    "tf2": "team fortress 2",
+    "tloz": "the legend of zelda",
+    "gow": "god of war",
+    "skyrim": "the elder scrolls v: skyrim",
+    "tloU": "the last of us",
+    "smash": "super smash bros",
+    "fifa": "federation internationale de football association",
+    "r6": "rainbow six",
+    "pkmn": "pokemon",
+    "eldorado": "red dead redemption",
+    "ffvii": "final fantasy vii",
+    "dota": "defense of the ancients",
+    "mc": "minecraft",
+    "halo ce": "halo combat evolved",
+    "crash": "crash bandicoot",
+    "uncharted 4": "uncharted 4: a thief's end",
+    "bioshock inf": "bioshock infinite",
+
+    // Sinónimos de cultura salvadoreña
+    "papusa": "pupusa",
+    "sivar": "san salvador",
+    "chuco": "atol chuco",
+    "marachito": "marachino",
+    "susu": "sudado",
+    "choco banano": "chocobanana",
+    "guanaco": "salvadoreño",
+    "izalco": "volcán izalco",
+    "tamal de elote": "tamal de maíz dulce",
+    "yuca frita": "yuca con chicharrón",
+    "fiesta agostina": "fiestas patronales de san salvador",
+    "chumpe": "pavo",
+    "carnaval san miguel": "carnaval de san miguel",
+    "chilate": "bebida caliente de maíz",
+    "juayúa": "feria gastronómica de juayúa",
+    "grano de oro": "café salvadoreño",
+    "las pupusitas": "pequeñas pupusas",
+    "volcán san salvador": "volcán quezaltepec",
+    "tamarindo": "playa el tamarindo",
+    "torre cuscatlán": "edificio cuscatlán",
+    "loroco": "flor comestible típica",
+    "quesadilla salvadoreña": "pan dulce de queso",
+    "panes con pavo": "panes rellenos de pavo",
+    "huacal": "recipiente de plástico",
+    "atol de elote": "bebida de maíz dulce",
+    "charamusca": "helado artesanal",
+    "minuta": "raspado",
+    "el tunco": "playa el tunco",
+    "sopa de pata": "sopa de res con vísceras",
+    "el imposible": "parque nacional el imposible",
+    "níspero": "fruta típica de El Salvador",
+    "bajareque": "casa de adobe",
+    "chicharrón": "cerdo frito",
+    "cocido": "sopa salvadoreña",
+    "dulce de atado": "panela",
+    "cóctel de conchas": "cóctel de almejas",
+    "chilate con nuegados": "bebida de maíz con dulces fritos",
+    "pupusas": "las pupusas",
+    "pupusas": "la pupusa"
+};
 
   // Reemplazar sinónimos en la entrada del usuario
   for (const key in synonyms) {
