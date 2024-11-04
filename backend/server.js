@@ -81,7 +81,7 @@ async function generateQuestion(category, existingQuestions, previousTitles) {
 
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
+      model: "gpt-4o-mini",
       messages: [
         { role: "system", content: "Eres un asistente de trivia que genera preguntas sobre videojuegos y cultura salvadoreña, recuerda que: debes verificar bien la informacion que uses" },
         { role: "user", content: prompt }
